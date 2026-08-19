@@ -1,9 +1,7 @@
 import streamlit as st
 from gtts import gTTS
 import requests
-import os
-import subprocess
-import imageio_ffmpeg
+import base64
 
 st.set_page_config(page_title="Realistic AI Video Generator", layout="centered")
 
@@ -24,9 +22,13 @@ if st.button("Realistic HD Video Create Karein"):
         audio_file = "audio.mp3"
         tts.save(audio_file)
 
-        st.info("2. Topic se related Realistic Stock Video download ho raha hai...")
+        with open(audio_file, "rb") as f:
+            audio_bytes = f.read()
+        audio_b64 = base64.b64encode(audio_bytes).decode()
+
+        st.info("2. Topic se related Stock Video link fetch ho raha hai...")
         
-        # Default fallback video
+        # Default fallback working stock video
         video_url = "https://assets.mixkit.co/videos/preview/mixkit-chart-on-a-screen-43223-large.mp4"
         
         # Pexels API Search
@@ -42,47 +44,47 @@ if st.button("Realistic HD Video Create Karein"):
                         video_url = vf['link']
                         break
 
-        bg_video = "bg_input.mp4"
-        res = requests.get(video_url, stream=True)
-        with open(bg_video, "wb") as f:
-            for chunk in res.iter_content(chunk_size=1024*1024):
-                if chunk:
-                    f.write(chunk)
-
-        st.info("3. Audio aur Video merge ho rahe hain...")
-        
-        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-        output_video = "final_output.mp4"
-        
-        # FFmpeg command: loops video and syncs with audio length
-        cmd = [
-            ffmpeg_exe, "-y",
-            "-stream_loop", "-1",
-            "-i", bg_video,
-            "-i", audio_file,
-            "-c:v", "libx264",
-            "-c:a", "aac",
-            "-shortest",
-            "-pix_fmt", "yuv420p",
-            output_video
-        ]
-        
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        if os.path.exists(output_video) and os.path.getsize(output_video) > 0:
-            st.success("Aapka Realistic HD Video Ready Hai! 🎉")
+        # Browser-based Video Player
+        html_code = f"""
+        <div style="position: relative; width: 100%; max-width: 640px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <video id="bgVideo" style="width: 100%; display: block;" loop muted playsinline crossorigin="anonymous">
+                <source src="{video_url}" type="video/mp4">
+            </video>
+            <audio id="audioPlayer" src="data:audio/mp3;base64,{audio_b64}"></audio>
             
-            with open(output_video, "rb") as v_file:
-                video_bytes = v_file.read()
-                st.video(video_bytes)
+            <div style="position: absolute; bottom: 15px; width: 100%; text-align: center;">
+                <button onclick="playVideo()" style="padding: 12px 28px; background: #FF4B4B; color: white; border: none; border-radius: 25px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+                    ▶ Play Realistic AI Video
+                </button>
+            </div>
+        </div>
+
+        <script>
+            function playVideo() {{
+                var video = document.getElementById('bgVideo');
+                var audio = document.getElementById('audioPlayer');
                 
-            st.download_button(
-                label="📥 Download Video (.MP4)",
-                data=video_bytes,
-                file_name="realistic_ai_video.mp4",
-                mime="video/mp4"
-            )
-        else:
-            st.error("Video merge karne mein problem aayi, kripya dubara try karein.")
+                video.currentTime = 0;
+                audio.currentTime = 0;
+                
+                video.play();
+                audio.play();
+                
+                audio.onended = function() {{
+                    video.pause();
+                }};
+            }}
+        </script>
+        """
+
+        st.components.v1.html(html_code, height=420)
+        st.success("Aapka HD AI Video Player Ready Hai! 🎉")
+        
+        st.download_button(
+            label="📥 Download Audio Voiceover (MP3)",
+            data=audio_bytes,
+            file_name="voiceover.mp3",
+            mime="audio/mp3"
+        )
     else:
         st.warning("Kripya pehle script likhein.")
