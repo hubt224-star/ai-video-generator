@@ -31,12 +31,19 @@ if st.button("Video Create Karein"):
 
         st.info("3. Audio aur Video merge ho raha hai...")
         
-        # System FFmpeg Command (Fast & Error-free)
         output_video = "final_output.mp4"
-        cmd = f"ffmpeg -y -i bg.mp4 -i audio.mp3 -c:v copy -c:a aac -shortest {output_video}"
+        
+        # Proper encoding command for Streamlit compatibility
+        cmd = f"ffmpeg -y -i bg.mp4 -i audio.mp3 -c:v libx264 -c:a aac -strict experimental -shortest {output_video}"
         os.system(cmd)
 
-        st.success("Video Ready hai!")
-        st.video(output_video)
+        # File exists and is non-empty check
+        if os.path.exists(output_video) and os.path.getsize(output_video) > 0:
+            st.success("Video Ready hai!")
+            with open(output_video, 'rb') as video_file:
+                video_bytes = video_file.read()
+                st.video(video_bytes)
+        else:
+            st.error("Video generate nahi ho payi, kripya dubara try karein.")
     else:
         st.warning("Kripya pehle script likhein.")
